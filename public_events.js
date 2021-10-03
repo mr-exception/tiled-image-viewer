@@ -37,7 +37,6 @@ function getTilesDims(z) {
     rows,
   };
 }
-console.log("test");
 function validTile(x, y, z) {
   const { cols, rows } = getTilesDims(z);
   return x >= 0 && y >= 0 && x < cols && y < rows;

@@ -49,13 +49,6 @@ function drawTiles(bounds, group, tileWidth, tileHeight, cols, rows) {
       }
       const x = i * tileWidth;
       const y = j * tileHeight;
-      // const tile = new Konva.Rect({
-      //   x,
-      //   y,
-      //   width: tileWidth,
-      //   height: tileHeight,
-      //   stroke: "#999",
-      // });
       Konva.Image.fromURL(getTileUrl(i, j, zoomLevel), function (tile) {
         tile.setAttrs({
           x,
@@ -86,25 +79,6 @@ function drawGrids(group) {
   );
   const bounds = getAllowedBounds(width / 2, height / 2, zoomLevel, group);
   drawTiles(bounds, group, tileWidth, tileHeight, cols, rows);
-
-  // write cell positions
-  // for (let i = 0; i < cols; i++) {
-  //   for (let j = 0; j < rows; j++) {
-  //     if (!canShowTile(bounds, i, j)) {
-  //       continue;
-  //     }
-  //     const x = (i + 0.3) * tileWidth;
-  //     const y = (j + 0.45) * tileHeight;
-  //     const text = new Konva.Text({
-  //       x,
-  //       y,
-  //       text: `x:${i}, y:${j}, z:${zoomLevel}`,
-  //       fontSize: 22,
-  //       fill: "black",
-  //     });
-  //     group.add(text);
-  //   }
-  // }
 }
 
 function getAllowedBounds(viewX, viewY, z, group) {
@@ -184,7 +158,6 @@ function renderGroup() {
       return true;
     });
     drawTiles(bounds, group, tileWidth, tileHeight, cols, rows);
-    // console.log(tiles);
   });
 
   const box = new Konva.Rect({
@@ -213,6 +186,8 @@ stage.on("wheel", function (event) {
     cntHeight /= 2;
     group = renderGroup();
     layer.add(group);
+    centerX /= 2;
+    centerY /= 2;
   } else {
     // zoom in
     if (zoomLevel === 5) return;
@@ -222,6 +197,12 @@ stage.on("wheel", function (event) {
     cntHeight *= 2;
     group = renderGroup();
     layer.add(group);
+    centerX *= 2;
+    centerY *= 2;
   }
+  group.move({
+    x: -centerX,
+    y: -centerY,
+  });
 });
 stage.add(layer);
