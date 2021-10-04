@@ -1,7 +1,3 @@
-const viewer = document.getElementById("viewer");
-const width = viewer.clientWidth;
-const height = viewer.clientHeight;
-
 const stage = new Konva.Stage({
   container: "viewer",
   width: width,
@@ -9,47 +5,26 @@ const stage = new Konva.Stage({
 });
 
 const layer = new Konva.Layer();
-
-let cntWidth = 2048;
-let cntHeight = 2048;
-const rowCount = 8;
-const colCount = 8;
 // zoom event
 let zoomLevel = 1;
 // center
 let centerX = width / 2;
 let centerY = height / 2;
-
 let tiles = [];
 
-function getTileSize(cntWidth, cntHeight, zoom) {
-  const rows = rowCount * Math.pow(2, zoomLevel - 1);
-  const cols = colCount * Math.pow(2, zoomLevel - 1);
-  const tileHeight = cntHeight / rows;
-  const tileWidth = cntWidth / cols;
-  return { tileHeight, tileWidth, cols, rows };
-}
+function renderFile(fileId) {}
 
-function canRenderTile(bounds, x, y) {
-  if (bounds.left > x) return false;
-  if (bounds.right < x) return false;
-  if (bounds.top > y) return false;
-  if (bounds.bottom < y) return false;
-  const hasTile = tiles.find(
-    (tile) => tile.x === x && tile.y === y && tile.z === zoomLevel
-  );
-  return !hasTile && validTile(x, y, zoomLevel);
-}
-
-function drawTiles(bounds, group, tileWidth, tileHeight, cols, rows) {
+function drawTiles(fileId, group) {
+  const { cols, rows, tileHeight, tileWidth } = getTileSize();
+  const bounds = getAllowedBounds(width / 2, height / 2, group);
   for (let i = 0; i < cols; i++) {
     for (let j = 0; j < rows; j++) {
-      if (!canRenderTile(bounds, i, j)) {
+      if (!canRenderTile(i, j, zoomLevel, "1", bounds)) {
         continue;
       }
       const x = i * tileWidth;
       const y = j * tileHeight;
-      Konva.Image.fromURL(getTileUrl(i, j, zoomLevel), function (tile) {
+      Konva.Image.fromURL(getTileUrl(i, j, zoomLevel, "1"), function (tile) {
         tile.setAttrs({
           x,
           y,
@@ -68,45 +43,6 @@ function drawTiles(bounds, group, tileWidth, tileHeight, cols, rows) {
       });
     }
   }
-}
-
-function drawGrids(group) {
-  tiles = tiles.filter((t) => t.z === zoomLevel);
-  const { tileHeight, tileWidth, cols, rows } = getTileSize(
-    cntWidth,
-    cntHeight,
-    zoomLevel
-  );
-  const bounds = getAllowedBounds(width / 2, height / 2, zoomLevel, group);
-  drawTiles(bounds, group, tileWidth, tileHeight, cols, rows);
-}
-
-function getAllowedBounds(viewX, viewY, z, group) {
-  const { tileHeight, tileWidth, rows, cols } = getTileSize(
-    cntWidth,
-    cntHeight,
-    z
-  );
-  const x = viewX - group.attrs.x;
-  const y = viewY - group.attrs.y;
-
-  const xFrom = x - width;
-  const xTo = x + width;
-
-  const yFrom = y - width;
-  const yTo = y + width;
-
-  const left = Math.ceil((xFrom + 1) / tileWidth) - 1;
-  const top = Math.ceil((yFrom + 1) / tileHeight) - 1;
-  const right = Math.ceil((xTo + 1) / tileWidth) - 1;
-  const bottom = Math.ceil((yTo + 1) / tileHeight) - 1;
-
-  return {
-    left: Math.max(left, 0),
-    top: Math.max(top, 0),
-    right: Math.min(right, cols),
-    bottom: Math.min(bottom, rows),
-  };
 }
 
 function renderGroup() {
@@ -139,12 +75,8 @@ function renderGroup() {
     centerY = -1 * group.attrs.y + height * 0.5;
     centerX = -1 * group.attrs.x + width * 0.5;
 
-    const { tileHeight, tileWidth, rows, cols } = getTileSize(
-      cntWidth,
-      cntHeight,
-      zoomLevel
-    );
-    const bounds = getAllowedBounds(width / 2, height / 2, zoomLevel, group);
+    const { tileHeight, tileWidth, rows, cols } = getTileSize();
+    const bounds = getAllowedBounds(width / 2, height / 2, group);
     tiles = tiles.filter((record) => {
       if (
         record.x < bounds.left ||
@@ -157,7 +89,7 @@ function renderGroup() {
       }
       return true;
     });
-    drawTiles(bounds, group, tileWidth, tileHeight, cols, rows);
+    drawTiles("1", group);
   });
 
   const box = new Konva.Rect({
@@ -168,7 +100,7 @@ function renderGroup() {
     fill: "#EEE",
   });
   group.add(box);
-  drawGrids(group);
+  drawTiles("1", group);
   return group;
 }
 
@@ -200,9 +132,16 @@ stage.on("wheel", function (event) {
     centerX *= 2;
     centerY *= 2;
   }
-  group.move({
-    x: -centerX,
-    y: -centerY,
-  });
+  // group.move({
+  //   x: group.attrs.x - cntWidth / 4,
+  //   y: group.attrs.y - cntHeight / 4,
+  // });
 });
+
+// let lastX = 0;
+// let lastY = 0;
+// group.on("mousemove", function ({ evt }) {
+//   lastX = (evt.x + group.attrs.x) * -1;
+//   lastY = (evt.y + group.attrs.y) * -1;
+// });
 stage.add(layer);

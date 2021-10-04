@@ -1,12 +1,26 @@
-const url =
-  "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/55d2ffc6-20c9-11ec-8a41-caec97f9405a/{z}/{x}/{y}.png";
-function getTileUrl(x, y, z) {
+const files = [
+  {
+    id: "1",
+    url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/55d2ffc6-20c9-11ec-8a41-caec97f9405a/{z}/{x}/{y}.png",
+  },
+];
+
+function getFile(id) {
+  return files.find((file) => file.id === id);
+}
+
+function getTileUrl(x, y, z, fileId) {
+  const url = getFile(fileId).url;
   const tileUrl = url.replace("{z}", z).replace("{x}", x).replace("{y}", y);
   const completeTileUrl = `https://sp-projects-files-v1-dev.s3-ap-southeast-2.amazonaws.com/${md5(
     tileUrl
   )}/${tileUrl}`;
   return completeTileUrl;
 }
+
+// function getTileUrl(x, y, z) {
+//   return "./sample.jpg";
+// }
 
 function getTilesDims(z) {
   const zoomProps = [
@@ -37,7 +51,7 @@ function getTilesDims(z) {
     rows,
   };
 }
-function validTile(x, y, z) {
+function validTile(x, y, z, fileId) {
   const { cols, rows } = getTilesDims(z);
   return x >= 0 && y >= 0 && x < cols && y < rows;
 }

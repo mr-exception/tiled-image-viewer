@@ -4,11 +4,19 @@
     <script src="https://unpkg.com/konva@8.2.1/konva.min.js"></script>
   </head>
   <body>
-    <div id="viewer">
-      <!-- <canvas id="canvas" height="4096" width="4096"> </canvas> -->
-    </div>
+    <div id="viewer"></div>
   </body>
+  <script>
+    const rowCount = 8;
+    const colCount = 8;
+    let cntWidth = 2048;
+    let cntHeight = 2048;
+    const viewer = document.getElementById("viewer");
+    const width = viewer.clientWidth;
+    const height = viewer.clientHeight;
+  </script>
   <script src="https://www.myersdaily.org/joseph/javascript/md5.js"></script>
+  <script src="functions.js"></script>
   <script src="public_events.js"></script>
   <script src="main.js"></script>
 </html>
