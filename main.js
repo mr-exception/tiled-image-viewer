@@ -360,6 +360,10 @@ function destroyFileLayers() {
     record.group.destroy();
   });
   fileLayers = [];
+  tiles.forEach((tile) => {
+    tile.tile.destroy();
+  });
+  tiles = [];
 }
 function renderFileLayers() {
   box.destroy();
