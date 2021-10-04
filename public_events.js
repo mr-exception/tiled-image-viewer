@@ -81,6 +81,39 @@ const files = [
   },
 ];
 
+const markups = [
+  {
+    id: "m1",
+    type: "text",
+    text: "some text markups",
+    offset: {
+      left: 100,
+      top: 80,
+      fontSize: 30,
+    },
+  },
+  {
+    id: "m2",
+    type: "text",
+    text: "this is important",
+    offset: {
+      left: 150,
+      top: 200,
+      fontSize: 10,
+    },
+  },
+  {
+    id: "m3",
+    type: "text",
+    text: "oops! this tile is blank",
+    offset: {
+      left: 250,
+      top: 210,
+      fontSize: 10,
+    },
+  },
+];
+
 function getFile(id) {
   return files.find((file) => file.id === id);
 }
