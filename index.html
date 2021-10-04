@@ -7,6 +7,7 @@
     <div id="viewer"></div>
   </body>
   <script>
+    // primary variables (these variables are configured in first step)
     const rowCount = 8;
     const colCount = 8;
     let cntWidth = 2048;
@@ -14,9 +15,14 @@
     const viewer = document.getElementById("viewer");
     const width = viewer.clientWidth;
     const height = viewer.clientHeight;
+    // secondary variables (these variables can be configured in first step but they will change in runtime)
+    let zoomLevel = 1;
+    let tileWidth = 0;
+    let tileHeight = 0;
+    let colsForZoom = 0;
+    let rowsForZoom = 0;
   </script>
   <script src="https://www.myersdaily.org/joseph/javascript/md5.js"></script>
-  <script src="functions.js"></script>
   <script src="public_events.js"></script>
   <script src="main.js"></script>
 </html>

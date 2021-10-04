@@ -1,7 +1,19 @@
 const files = [
   {
+    id: "2",
+    url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/55d2fcb9-20c9-11ec-8a41-caec97f9405a/{z}/{x}/{y}.png",
+    offset: {
+      top: 100,
+      left: 100,
+    },
+  },
+  {
     id: "1",
     url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/55d2ffc6-20c9-11ec-8a41-caec97f9405a/{z}/{x}/{y}.png",
+    offset: {
+      top: 0,
+      left: 0,
+    },
   },
 ];
 
@@ -18,11 +30,11 @@ function getTileUrl(x, y, z, fileId) {
   return completeTileUrl;
 }
 
-// function getTileUrl(x, y, z) {
+// function getTileUrl(x, y, z, fileId) {
 //   return "./sample.jpg";
 // }
 
-function getTilesDims(z) {
+function getTilesDims(fileId, z) {
   const zoomProps = [
     { unitPerPixel: 256, order: 1 },
     { unitPerPixel: 128, order: 2 },
@@ -50,8 +62,4 @@ function getTilesDims(z) {
     cols,
     rows,
   };
-}
-function validTile(x, y, z, fileId) {
-  const { cols, rows } = getTilesDims(z);
-  return x >= 0 && y >= 0 && x < cols && y < rows;
 }
