@@ -5,52 +5,110 @@ function calculateTiles() {
   tileHeight = cntHeight / rowsForZoom;
   tileWidth = cntWidth / colsForZoom;
 }
-// returns a boolean which tells that a tile with given coordinates can be rendered or not
-function canRenderTile(x, y, z, fileId, bounds) {
-  if (bounds.left > x) return false;
-  if (bounds.right < x) return false;
-  if (bounds.top > y) return false;
-  if (bounds.bottom < y) return false;
-  const hasTile = tiles.find(
-    (tile) => tile.x === x && tile.y === y && tile.z === z
+/**
+ * check if the tile exists in cached tiles list
+ * @param {number} col
+ * @param {number} row
+ * @param {number} z
+ * @returns boolean
+ */
+function hasTile(id, col, row, z) {
+  return !!tiles.find(
+    (tile) =>
+      tile.id === id && tile.col === col && tile.row === row && tile.z === z
   );
-  if (hasTile) return false;
+}
+/**
+ * checks if can render the tile based on view port bound
+ * @param {number} col
+ * @param {number} row
+ * @param {number} z
+ * @param {string} fileId
+ * @returns boolean
+ */
+function canRenderTile(col, row, z, fileId) {
+  const filePosition = getPosition(fileId);
+  const x = filePosition.x + tileWidth * col;
+  const y = filePosition.y + tileWidth * row;
+  if (leftBound > x) return false;
+  if (topBound > y) return false;
+
+  if (rightBound < x) return false;
+  if (bottomBount < y) return false;
 
   if (x < 0) return false;
   if (y < 0) return false;
 
   const { cols, rows } = getTilesDims(fileId, z);
-  if (x >= cols) return false;
-  if (y >= rows) return false;
+  if (col >= cols) return false;
+  if (row >= rows) return false;
   return true;
 }
-// returns allowed tile bounds based on view position and group
-function getAllowedBounds(viewX, viewY, group) {
-  const x = viewX - group.attrs.x;
-  const y = viewY - group.attrs.y;
-
-  const xFrom = x - width;
-  const xTo = x + width;
-
-  const yFrom = y - width;
-  const yTo = y + width;
-
-  const left = Math.ceil((xFrom + 1) / tileWidth) - 1;
-  const top = Math.ceil((yFrom + 1) / tileHeight) - 1;
-  const right = Math.ceil((xTo + 1) / tileWidth) - 1;
-  const bottom = Math.ceil((yTo + 1) / tileHeight) - 1;
-
-  return {
-    left: Math.max(left, 0),
-    top: Math.max(top, 0),
-    right: Math.min(right, colsForZoom),
-    bottom: Math.min(bottom, rowsForZoom),
-  };
+function unsetAllDraggables(excenptions = []) {
+  fileLayers = fileLayers.map((fileLayer) => {
+    if (excenptions.includes(fileLayer.id)) return fileLayer;
+    if (!fileLayer.draggable) return fileLayer;
+    fileLayer.draggable = false;
+    fileLayer.group.setAttrs({
+      draggable: false,
+    });
+    fileLayer.dragBorder.destroy();
+    fileLayer.dragBorder = null;
+    return fileLayer;
+  });
 }
-// get offsets by file id
+function toggleDraggable(fileId) {
+  unsetAllDraggables([fileId]);
+
+  const fileLayer = fileLayers.find((record) => record.id === fileId);
+  fileLayer.draggable = !fileLayer.draggable;
+  if (fileLayer.draggable) {
+    const dragBorder = new Konva.Rect({
+      x: 0,
+      y: 0,
+      width: fileLayer.group.attrs.width,
+      height: fileLayer.group.attrs.height,
+      stroke: "blue",
+      strokeWidth: 3,
+    });
+    fileLayer.group.add(dragBorder);
+    fileLayer.dragBorder = dragBorder;
+  } else {
+    fileLayer.dragBorder.destroy();
+    fileLayer.dragBorder = null;
+  }
+  fileLayer.group.setAttrs({
+    draggable: fileLayer.draggable,
+  });
+}
+
+function getAllowedBounds() {
+  const x = centerX - filesGroup.attrs.x;
+  const y = centerY - filesGroup.attrs.y;
+
+  const result = {
+    from: {},
+    to: {},
+  };
+  result.from.x = x - width;
+  result.to.x = x + width;
+
+  result.from.y = y - width;
+  result.to.y = y + width;
+
+  return result;
+}
+/**
+ * returns current file position object by id
+ * @param {string} fileId
+ * @returns [x, y, realX, realY, id]
+ */
 function getPosition(fileId) {
   return filePostions.find((record) => record.id === fileId);
 }
+/**
+ * updates all file positions with new zoom level. this function must be called after each zoom change
+ */
 function updateFilePositions() {
   filePostions = filePostions.map((pos) => {
     pos.x = pos.realX * Math.pow(2, zoomLevel - 1);
@@ -58,6 +116,13 @@ function updateFilePositions() {
     return pos;
   });
 }
+/**
+ * updates a file position by file id
+ * @param {string} fileId
+ * @param {number} x
+ * @param {number} y
+ * @returns void
+ */
 function setFilePosition(fileId, x, y) {
   filePostions = filePostions.map((pos) => {
     if (pos.id !== fileId) return pos;
@@ -82,15 +147,27 @@ calculateTiles();
 // center
 let centerX = width / 2;
 let centerY = height / 2;
+
+// view bounds (nothing must be rendred out of this bound)
+const viewVerticalDistance = width;
+const viewHorizontalDistance = height;
+
+let leftBound = centerX - viewVerticalDistance;
+let rightBound = centerX + viewVerticalDistance;
+let topBound = centerY - viewHorizontalDistance;
+let bottomBount = centerY + viewHorizontalDistance;
+
+// tiles cache
 let tiles = [];
 
 function drawTiles(fileId, group) {
-  const bounds = getAllowedBounds(width / 2, height / 2, group);
+  const bounds = getAllowedBounds(group);
   for (let i = 0; i < colsForZoom; i++) {
     for (let j = 0; j < rowsForZoom; j++) {
       if (!canRenderTile(i, j, zoomLevel, fileId, bounds)) {
         continue;
       }
+      if (hasTile(fileId, i, j, zoomLevel)) continue;
       const x = i * tileWidth;
       const y = j * tileHeight;
       Konva.Image.fromURL(getTileUrl(i, j, zoomLevel, fileId), function (tile) {
@@ -103,13 +180,16 @@ function drawTiles(fileId, group) {
           strokeWidth: 2,
         });
         group.add(tile);
-        // tiles.push({
-        //   x,
-        //   y,
-        //   z: zoomLevel,
-        //   id: fileId,
-        //   tile,
-        // });
+        tiles.push({
+          col: i,
+          row: j,
+          x,
+          y,
+          z: zoomLevel,
+          id: fileId,
+          tile,
+        });
+        console.log("render");
       });
     }
   }
@@ -122,7 +202,7 @@ function renderGroup(file) {
     y,
     width: dims.cols * tileWidth,
     height: dims.rows * tileHeight,
-    draggable: true,
+    draggable: false,
   });
 
   const dragBorder = 0;
@@ -168,23 +248,6 @@ function renderGroup(file) {
     } else {
       lastY = group.attrs.y;
     }
-
-    centerY = -1 * group.attrs.y + height * 0.5;
-    centerX = -1 * group.attrs.x + width * 0.5;
-
-    // const bounds = getAllowedBounds(width / 2, height / 2, group);
-    // tiles = tiles.filter((record) => {
-    //   if (
-    //     record.x < bounds.left ||
-    //     record.x > bounds.right ||
-    //     record.y < bounds.top ||
-    //     record.y > bounds.bottom
-    //   ) {
-    //     record.tile.destroy();
-    //     return false;
-    //   }
-    //   return true;
-    // });
     drawTiles(file.id, group);
   });
 
@@ -256,6 +319,31 @@ let box = new Konva.Rect({
   strokeWidth: 2,
 });
 filesGroup.add(box);
+// file group is user view. when files group is draged means the view ports is changed
+// we have to check for new view bounds to render new tiles and destroy old unshown tiles
+filesGroup.on("dragmove", function () {
+  // updating center position on file group
+  centerY = -1 * filesGroup.attrs.y + height * 0.5;
+  centerX = -1 * filesGroup.attrs.x + width * 0.5;
+  // updating render bounds by view port center
+
+  leftBound = centerX - viewVerticalDistance;
+  rightBound = centerX + viewVerticalDistance;
+  topBound = centerY - viewHorizontalDistance;
+  bottomBount = centerY + viewHorizontalDistance;
+
+  tiles = tiles.filter((record) => {
+    if (!canRenderTile(record.col, record.row, record.z, record.id)) {
+      record.tile.destroy();
+      console.log("destroy");
+      return false;
+    }
+    return record;
+  });
+  fileLayers.forEach((file) => {
+    drawTiles(file.id, file.group);
+  });
+});
 
 layer.add(filesGroup);
 
@@ -284,12 +372,20 @@ function renderFileLayers() {
     stroke: "#999",
     strokeWidth: 2,
   });
+  box.on("click", function () {
+    unsetAllDraggables();
+  });
   filesGroup.add(box);
   files.forEach((record) => {
     let group = renderGroup(record);
+    group.on("click", function () {
+      toggleDraggable(record.id);
+    });
     filesGroup.add(group);
     fileLayers.push({
       ...record,
+      draggable: false,
+      dragBorder: null,
       group,
     });
   });
