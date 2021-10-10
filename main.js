@@ -4,7 +4,7 @@ function calculateTiles() {
   colsForZoom = colCount * Math.pow(2, zoomLevel - 1);
 }
 function getTileSize(fileId) {
-  return files.find((file) => file.id === fileId).tileSize;
+  return filePositions.find((file) => file.id === fileId).tileSize;
 }
 /**
  * check if the tile exists in cached tiles list

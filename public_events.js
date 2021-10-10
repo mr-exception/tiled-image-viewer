@@ -1,16 +1,16 @@
 const files = [
-  // {
-  //   id: "1",
-  //   url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/086f1ee6-20c6-11ec-b417-7697f26683c0/{z}/{x}/{y}.png",
-  //   offset: { top: 512 * 0, left: 512 * 0 },
-  //   scale: { width: 1, height: 1 },
-  // },
-  // {
-  //   id: "2",
-  //   url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/086f2f5f-20c6-11ec-b417-7697f26683c0/{z}/{x}/{y}.png",
-  //   offset: { top: 512 * 0, left: 512 * 1 },
-  //   scale: { width: 1, height: 1 },
-  // },
+  {
+    id: "1",
+    url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/086f1ee6-20c6-11ec-b417-7697f26683c0/{z}/{x}/{y}.png",
+    offset: { top: 512 * 0, left: 512 * 0 },
+    tileSize: 256,
+  },
+  {
+    id: "2",
+    url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/086f2f5f-20c6-11ec-b417-7697f26683c0/{z}/{x}/{y}.png",
+    offset: { top: 512 * 0, left: 512 * 1 },
+    tileSize: 256,
+  },
   // {
   //   id: "3",
   //   url: "940f31de-de3e-4fa9-84e9-e442d2c1c8f3/086f3351-20c6-11ec-b417-7697f26683c0/{z}/{x}/{y}.png",
