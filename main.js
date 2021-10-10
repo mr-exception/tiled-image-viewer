@@ -2,8 +2,9 @@
 function calculateTiles() {
   rowsForZoom = rowCount * Math.pow(2, zoomLevel - 1);
   colsForZoom = colCount * Math.pow(2, zoomLevel - 1);
-  tileHeight = cntHeight / rowsForZoom;
-  tileWidth = cntWidth / colsForZoom;
+}
+function getTileSize(fileId) {
+  return files.find((file) => file.id === fileId).tileSize;
 }
 /**
  * check if the tile exists in cached tiles list
@@ -28,8 +29,9 @@ function hasTile(id, col, row, z) {
  */
 function canRenderTile(col, row, z, fileId) {
   const filePosition = getFilePosition(fileId);
-  const x = filePosition.x + tileWidth * col;
-  const y = filePosition.y + tileWidth * row;
+  const tileSize = getTileSize(fileId);
+  const x = filePosition.x + tileSize * col;
+  const y = filePosition.y + tileSize * row;
   if (leftBound > x) return false;
   if (topBound > y) return false;
 
@@ -99,7 +101,7 @@ function getAllowedBounds() {
  * @returns [x, y, realX, realY, id]
  */
 function getFilePosition(fileId) {
-  return filePostions.find((record) => record.id === fileId);
+  return filePositions.find((record) => record.id === fileId);
 }
 /**
  * returns current markup position object by id
@@ -113,7 +115,7 @@ function getMarkupPosition(markupId) {
  * updates all file positions with new zoom level. this function must be called after each zoom change
  */
 function updateFilePositions() {
-  filePostions = filePostions.map((pos) => {
+  filePositions = filePositions.map((pos) => {
     pos.x = pos.realX * Math.pow(2, zoomLevel - 1);
     pos.y = pos.realY * Math.pow(2, zoomLevel - 1);
     return pos;
@@ -138,12 +140,19 @@ function updateMarkupPositions() {
  * @returns void
  */
 function setFilePosition(fileId, x, y) {
-  filePostions = filePostions.map((pos) => {
+  filePositions = filePositions.map((pos) => {
     if (pos.id !== fileId) return pos;
     pos.x = x;
     pos.y = y;
     pos.realX = x / Math.pow(2, zoomLevel - 1);
     pos.realY = y / Math.pow(2, zoomLevel - 1);
+    return pos;
+  });
+}
+function setFileSize(fileId, scale) {
+  filePositions = filePositions.map((pos) => {
+    if (pos.id !== fileId) return pos;
+    pos.tileSize = pos.tileSize * scale;
     return pos;
   });
 }
@@ -172,9 +181,7 @@ const stage = new Konva.Stage({
 });
 
 const layer = new Konva.Layer();
-
 calculateTiles();
-
 // center
 let centerX = width / 2;
 let centerY = height / 2;
@@ -193,20 +200,21 @@ let tiles = [];
 
 function drawTiles(fileId, group) {
   const bounds = getAllowedBounds(group);
+  const tileSize = getTileSize(fileId);
   for (let i = 0; i < colsForZoom; i++) {
     for (let j = 0; j < rowsForZoom; j++) {
       if (!canRenderTile(i, j, zoomLevel, fileId, bounds)) {
         continue;
       }
       if (hasTile(fileId, i, j, zoomLevel)) continue;
-      const x = i * tileWidth;
-      const y = j * tileHeight;
+      const x = i * tileSize;
+      const y = j * tileSize;
       Konva.Image.fromURL(getTileUrl(i, j, zoomLevel, fileId), function (tile) {
         tile.setAttrs({
           x,
           y,
-          width: tileWidth,
-          height: tileHeight,
+          width: tileSize,
+          height: tileSize,
           stroke: "#999",
           strokeWidth: 2,
         });
@@ -227,12 +235,13 @@ function drawTiles(fileId, group) {
 const dragBorder = 0;
 function renderGroup(file) {
   const dims = getTilesDims(file.id, zoomLevel);
+  const tileSize = getTileSize(file.id);
   const { x, y } = getFilePosition(file.id);
   let group = new Konva.Group({
     x,
     y,
-    width: dims.cols * tileWidth,
-    height: dims.rows * tileHeight,
+    width: dims.cols * tileSize,
+    height: dims.rows * tileSize,
     draggable: false,
   });
 
@@ -351,7 +360,6 @@ filesGroup.on("dragmove", function () {
   tiles = tiles.filter((record) => {
     if (!canRenderTile(record.col, record.row, record.z, record.id)) {
       record.tile.destroy();
-      console.log("destroy");
       return false;
     }
     return record;
@@ -362,15 +370,19 @@ filesGroup.on("dragmove", function () {
 });
 
 layer.add(filesGroup);
-const transformer = new Konva.Transformer();
+const transformer = new Konva.Transformer({
+  rotateEnabled: false,
+  enabledAnchors: ["top-left", "top-right", "bottom-left", "bottom-right"],
+});
 layer.add(transformer);
 
-let filePostions = files.map((file) => ({
+let filePositions = files.map((file) => ({
   id: file.id,
   realX: file.offset.left,
   realY: file.offset.top,
   x: file.offset.left * Math.pow(2, zoomLevel - 1),
   y: file.offset.top * Math.pow(2, zoomLevel - 1),
+  tileSize: file.tileSize,
 }));
 let markupPositions = markups.map((markup) => ({
   id: markup.id,
@@ -411,6 +423,9 @@ function renderFileLayers() {
     let group = renderGroup(record);
     group.on("click tap", function () {
       toggleDraggable(record.id);
+    });
+    group.on("transformend", function (event) {
+      setFileSize(record.id, event.target.attrs.scaleX);
     });
     filesGroup.add(group);
     fileLayers.push({
