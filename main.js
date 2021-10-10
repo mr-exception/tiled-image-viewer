@@ -54,8 +54,17 @@ function unsetAllDraggables() {
     });
     return fileLayer;
   });
+  markupLayers = markupLayers.map((markupLayer) => {
+    if (!markupLayer.draggable) return markupLayer;
+    markupLayer.draggable = false;
+    markupLayer.group.setAttrs({
+      draggable: false,
+    });
+    return markupLayer;
+  });
 }
 function toggleDraggable(fileId) {
+  unsetAllDraggables();
   const fileLayer = fileLayers.find((record) => record.id === fileId);
   fileLayer.draggable = !fileLayer.draggable;
   if (fileLayer.draggable) {
@@ -271,15 +280,6 @@ function renderGroup(file) {
     }
     drawTiles(file.id, group);
   });
-
-  // const box = new Konva.Rect({
-  //   x: 0,
-  //   y: 0,
-  //   width: cntWidth,
-  //   height: cntHeight,
-  //   fill: "#EEE",
-  // });
-  // group.add(box);
   drawTiles(file.id, group);
   return group;
 }
@@ -312,18 +312,7 @@ stage.on("wheel", function (event) {
   renderMarkups();
 
   transformer.nodes([]);
-  // group.move({
-  //   x: group.attrs.x - cntWidth / 4,
-  //   y: group.attrs.y - cntHeight / 4,
-  // });
 });
-
-// let lastX = 0;
-// let lastY = 0;
-// group.on("mousemove", function ({ evt }) {
-//   lastX = (evt.x + group.attrs.x) * -1;
-//   lastY = (evt.y + group.attrs.y) * -1;
-// });
 stage.add(layer);
 
 // render all file layers
@@ -414,13 +403,13 @@ function renderFileLayers() {
     stroke: "#999",
     strokeWidth: 2,
   });
-  box.on("click", function () {
+  box.on("click tap", function () {
     unsetAllDraggables();
   });
   filesGroup.add(box);
   files.forEach((record) => {
     let group = renderGroup(record);
-    group.on("click", function () {
+    group.on("click tap", function () {
       toggleDraggable(record.id);
     });
     filesGroup.add(group);
@@ -446,7 +435,7 @@ function renderMarkups() {
           text: record.text,
           draggable: false,
         });
-        text.on("click", function () {
+        text.on("click tap", function () {
           text.setAttrs({ draggable: !text.attrs.draggable });
           if (text.attrs.draggable) transformer.nodes([text]);
           else transformer.nodes([]);
@@ -500,12 +489,6 @@ function renderMarkups() {
         return;
     }
   });
-
-  // var tr1 = new Konva.Transformer({
-  //   nodes: [text1],
-  //   centeredScaling: true,
-  // });
-  // filesGroup.add(tr1);
 }
 
 renderFileLayers();
