@@ -216,8 +216,8 @@ function drawTiles(fileId, group) {
           y,
           width: tileSize,
           height: tileSize,
-          // stroke: "#999",
-          // strokeWidth: 2,
+          stroke: showStrokes ? "#999" : undefined,
+          strokeWidth: showStrokes ? 2 : undefined,
         });
         group.add(tile);
         tiles.push({
@@ -312,11 +312,52 @@ function setCenterTo(x, y) {
   });
 }
 
-stage.on("wheel", function (event) {
-  const { x, y } = getPointerPosition();
-  centerX = x;
-  centerY = y;
+function zoomIn() {
+  if (zoomLevel === 5) return;
+  // filesGroup.move({ x: centerX, y: centerY });
+  zoomLevel += 1;
+  cntWidth *= 2;
+  cntHeight *= 2;
+  centerX *= 2;
+  centerY *= 2;
 
+  setCenterTo(centerX, centerY);
+  calculateTiles();
+  updateFilePositions();
+  updateMarkupPositions();
+
+  destroyFileLayers();
+  renderFileLayers();
+
+  renderMarkups();
+
+  transformer.nodes([]);
+}
+
+function zoomOut() {
+  // zoom out
+  if (zoomLevel === 1) return;
+  // filesGroup.move({ x: -centerX, y: -centerY });
+  zoomLevel -= 1;
+  cntWidth /= 2;
+  cntHeight /= 2;
+  centerX /= 2;
+  centerY /= 2;
+
+  setCenterTo(centerX, centerY);
+  calculateTiles();
+  updateFilePositions();
+  updateMarkupPositions();
+
+  destroyFileLayers();
+  renderFileLayers();
+
+  renderMarkups();
+
+  transformer.nodes([]);
+}
+
+stage.on("wheel", function (event) {
   const delta = event.evt.deltaY;
   if (delta > 0) {
     // zoom out
@@ -532,6 +573,15 @@ function renderMarkups() {
       default:
         return;
     }
+  });
+}
+let showStrokes = false;
+function toggleBorder() {
+  showStrokes = !showStrokes;
+  tiles.forEach(({ tile }) => {
+    tile.stroke("#999");
+    tile.strokeWidth(2);
+    tile.strokeEnabled(showStrokes);
   });
 }
 
