@@ -207,6 +207,7 @@ function drawTiles(fileId, group) {
         continue;
       }
       if (hasTile(fileId, i, j, zoomLevel)) continue;
+      // console.log(fileId);
       const x = i * tileSize;
       const y = j * tileSize;
       Konva.Image.fromURL(getTileUrl(i, j, zoomLevel, fileId), function (tile) {
@@ -215,8 +216,8 @@ function drawTiles(fileId, group) {
           y,
           width: tileSize,
           height: tileSize,
-          stroke: "#999",
-          strokeWidth: 2,
+          // stroke: "#999",
+          // strokeWidth: 2,
         });
         group.add(tile);
         tiles.push({
@@ -292,11 +293,35 @@ function renderGroup(file) {
   drawTiles(file.id, group);
   return group;
 }
+
+function getPointerPosition() {
+  // calculate center
+  const stagePointer = stage.getPointerPosition();
+  const x = stagePointer.x - filesGroup.attrs.x;
+  const y = stagePointer.y - filesGroup.attrs.y;
+  return { x, y };
+}
+
+function setCenterTo(x, y) {
+  const currentX = filesGroup.attrs.x;
+  const currentY = filesGroup.attrs.y;
+  filesGroup.move({ x: -currentX, y: -currentY });
+  filesGroup.move({
+    x: width / 2 - x,
+    y: height / 2 - y,
+  });
+}
+
 stage.on("wheel", function (event) {
+  const { x, y } = getPointerPosition();
+  centerX = x;
+  centerY = y;
+
   const delta = event.evt.deltaY;
   if (delta > 0) {
     // zoom out
     if (zoomLevel === 1) return;
+    // filesGroup.move({ x: -centerX, y: -centerY });
     zoomLevel -= 1;
     cntWidth /= 2;
     cntHeight /= 2;
@@ -305,12 +330,15 @@ stage.on("wheel", function (event) {
   } else {
     // zoom in
     if (zoomLevel === 5) return;
+    // filesGroup.move({ x: centerX, y: centerY });
     zoomLevel += 1;
     cntWidth *= 2;
     cntHeight *= 2;
     centerX *= 2;
     centerY *= 2;
   }
+  console.log(centerX, centerY);
+  setCenterTo(centerX, centerY);
   calculateTiles();
   updateFilePositions();
   updateMarkupPositions();
@@ -360,6 +388,7 @@ filesGroup.on("dragmove", function () {
   tiles = tiles.filter((record) => {
     if (!canRenderTile(record.col, record.row, record.z, record.id)) {
       record.tile.destroy();
+      // console.log("destroy");
       return false;
     }
     return record;
