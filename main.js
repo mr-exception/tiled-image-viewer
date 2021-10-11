@@ -108,8 +108,10 @@ function getFilePosition(fileId) {
  * @param {string} markupId
  * @returns [x, y, realX, realY, id]
  */
-function getMarkupPosition(markupId) {
-  return markupPositions.find((record) => record.id === markupId);
+function getMarkup(markupId) {
+  console.log(markupLayers);
+  return (markupLayers.find((record) => record.record.id === markupId) || {})
+    .record;
 }
 /**
  * updates all file positions with new zoom level. this function must be called after each zoom change
@@ -125,11 +127,18 @@ function updateFilePositions() {
  * updates all markup positions with new zoom level. this function must be called after each zoom change
  */
 function updateMarkupPositions() {
-  markupPositions = markupPositions.map((pos) => {
-    pos.x = pos.realX * Math.pow(2, zoomLevel - 1);
-    pos.y = pos.realY * Math.pow(2, zoomLevel - 1);
-    pos.size = pos.realSize * Math.pow(2, zoomLevel - 1);
-    return pos;
+  markupLayers = markupLayers.map((markup) => {
+    if (markup.record.type === "text") {
+      markup.record.x = markup.record.realX * Math.pow(2, zoomLevel - 1);
+      markup.record.y = markup.record.realY * Math.pow(2, zoomLevel - 1);
+      markup.record.size = markup.record.realSize * Math.pow(2, zoomLevel - 1);
+    }
+    if (markup.record.type === "line") {
+      markup.record.realPoints = markup.record.points.map(
+        (p) => p * Math.pow(2, zoomLevel - 1)
+      );
+    }
+    return markup;
   });
 }
 /**
@@ -164,13 +173,13 @@ function setFileSize(fileId, scale) {
  * @returns void
  */
 function setMarkupPosition(markupId, x, y) {
-  markupPositions = markupPositions.map((pos) => {
-    if (pos.id !== markupId) return pos;
-    pos.x = x;
-    pos.y = y;
-    pos.realX = x / Math.pow(2, zoomLevel - 1);
-    pos.realY = y / Math.pow(2, zoomLevel - 1);
-    return pos;
+  markupLayers = markupLayers.map((markup) => {
+    if (markup.record.id !== markupId) return markup;
+    markup.record.x = x;
+    markup.record.y = y;
+    markup.record.realX = x / Math.pow(2, zoomLevel - 1);
+    markup.record.realY = y / Math.pow(2, zoomLevel - 1);
+    return markup;
   });
 }
 
@@ -378,7 +387,6 @@ stage.on("wheel", function (event) {
     centerX *= 2;
     centerY *= 2;
   }
-  console.log(centerX, centerY);
   setCenterTo(centerX, centerY);
   calculateTiles();
   updateFilePositions();
@@ -413,6 +421,43 @@ let box = new Konva.Rect({
   strokeWidth: 2,
 });
 filesGroup.add(box);
+
+// let drawing = false;
+// let line;
+// let lineDotsCount = 0;
+// filesGroup.on("click", function ({ evt }) {
+//   console.log("down: ", evt.x, evt.y);
+//   drawing = true;
+//   if (lineDotsCount === 0) {
+//     line = new Konva.Line({
+//       points: [evt.x, evt.y],
+//       stroke: "red",
+//       strokeWidth: 5,
+//       lineCap: "round",
+//       lineJoin: "round",
+//     });
+//     filesGroup.add(line);
+//     lineDotsCount += 1;
+//   } else {
+//     const points = line.points().slice(0, lineDotsCount * 2);
+//     points.push(evt.x);
+//     points.push(evt.y);
+//     line.points(points);
+//     lineDotsCount += 1;
+//   }
+// });
+// filesGroup.on("mousemove", function ({ evt }) {
+//   if (!drawing) return;
+//   const points = line.points().slice(0, lineDotsCount * 2);
+//   points.push(evt.x);
+//   points.push(evt.y);
+//   line.points(points);
+// });
+// filesGroup.on("mouseup", function ({ evt }) {
+//   console.log("up: ", evt.x, evt.y);
+//   drawing = false;
+// });
+
 // file group is user view. when files group is draged means the view ports is changed
 // we have to check for new view bounds to render new tiles and destroy old unshown tiles
 filesGroup.on("dragmove", function () {
@@ -453,15 +498,6 @@ let filePositions = files.map((file) => ({
   x: file.offset.left * Math.pow(2, zoomLevel - 1),
   y: file.offset.top * Math.pow(2, zoomLevel - 1),
   tileSize: file.tileSize,
-}));
-let markupPositions = markups.map((markup) => ({
-  id: markup.id,
-  realSize: markup.offset.fontSize,
-  realX: markup.offset.left,
-  realY: markup.offset.top,
-  size: markup.offset.fontSize * Math.pow(2, zoomLevel - 1),
-  x: markup.offset.left * Math.pow(2, zoomLevel - 1),
-  y: markup.offset.top * Math.pow(2, zoomLevel - 1),
 }));
 
 function destroyFileLayers() {
@@ -506,73 +542,109 @@ function renderFileLayers() {
     });
   });
 }
-
-let markupLayers = [];
+let markupLayers = markups.map((markup) => {
+  if (markup.type === "text") {
+    markup.x = markup.offset.left;
+    markup.y = markup.offset.top;
+    markup.size = markup.offset.fontSize;
+    const result = { draggable: false, record: markup };
+    result.record.realX = markup.x;
+    result.record.realY = markup.y;
+    result.record.realSize = markup.size;
+    result.record.realPoints = markup.points;
+    return result;
+  }
+  if (markup.type === "line") {
+    markup.realPoints = markup.points;
+    const result = { draggable: false, record: markup };
+    return result;
+  }
+});
 function renderMarkups() {
-  markups.forEach((record) => {
-    const { x, y, size } = getMarkupPosition(record.id);
-    switch (record.type) {
+  markupLayers = markupLayers.map((markup) => {
+    switch (markup.record.type) {
       case "text":
-        const text = new Konva.Text({
-          x,
-          y,
-          fontSize: size,
-          text: record.text,
+        markup.group = new Konva.Text({
+          x: markup.record.x,
+          y: markup.record.y,
+          fontSize: markup.record.size,
+          text: markup.record.text,
           draggable: false,
         });
-        text.on("click tap", function () {
-          text.setAttrs({ draggable: !text.attrs.draggable });
-          if (text.attrs.draggable) transformer.nodes([text]);
-          else transformer.nodes([]);
-        });
-        text.on("dragmove", function () {
-          setMarkupPosition(record.id, text.attrs.x, text.attrs.y);
-          if (text.attrs.x <= dragBorder) {
-            setFilePosition(record.id, dragBorder, text.attrs.y);
-            text.x(dragBorder);
-          }
-          if (text.attrs.x + text.attrs.width >= cntWidth - dragBorder) {
-            setFilePosition(
-              record.id,
-              cntWidth - dragBorder - text.attrs.width,
-              text.attrs.y
-            );
-            text.x(cntWidth - dragBorder - text.attrs.width);
-          }
+        // markup.group.on("click tap", function () {
+        //   markup.setAttrs({ draggable: !markup.attrs.draggable });
+        //   if (markup.attrs.draggable) transformer.nodes([markup]);
+        //   else transformer.nodes([]);
+        // });
+        // markup.group.on("dragmove", function () {
+        //   setMarkupPosition(
+        //     markup.record.id,
+        //     markup.group.attrs.x,
+        //     markup.group.attrs.y
+        //   );
+        //   if (markup.group.attrs.x <= dragBorder) {
+        //     setFilePosition(markup.record.id, dragBorder, markup.group.attrs.y);
+        //     markup.group.x(dragBorder);
+        //   }
+        //   if (
+        //     markup.group.attrs.x + markup.group.attrs.width >=
+        //     cntWidth - dragBorder
+        //   ) {
+        //     setFilePosition(
+        //       markup.record.id,
+        //       cntWidth - dragBorder - markup.group.attrs.width,
+        //       markup.group.attrs.y
+        //     );
+        //     markup.group.x(cntWidth - dragBorder - markup.group.attrs.width);
+        //   }
 
-          if (text.attrs.y <= dragBorder) {
-            setFilePosition(record.id, text.attrs.x, dragBorder);
-            text.y(dragBorder);
-          }
-          if (text.attrs.y + text.attrs.height >= cntHeight - dragBorder) {
-            setFilePosition(
-              file.id,
-              cntHeight - dragBorder - text.attrs.height,
-              dragBorder
-            );
-            text.y(cntHeight - dragBorder - text.attrs.height);
-          }
+        //   if (markup.group.attrs.y <= dragBorder) {
+        //     setFilePosition(markup.record.id, markup.group.attrs.x, dragBorder);
+        //     markup.group.y(dragBorder);
+        //   }
+        //   if (
+        //     markup.group.attrs.y + markup.group.attrs.height >=
+        //     cntHeight - dragBorder
+        //   ) {
+        //     setFilePosition(
+        //       file.id,
+        //       cntHeight - dragBorder - markup.attrs.height,
+        //       dragBorder
+        //     );
+        //     markup.group.y(cntHeight - dragBorder - markup.group.attrs.height);
+        //   }
 
-          if (text.attrs.x < 0) {
-            lastX = 0;
-          } else if (text.attrs.x > cntWidth - dragBorder) {
-            lastX = cntWidth - dragBorder;
-          } else {
-            lastX = text.attrs.x;
-          }
-          if (text.attrs.y < 0) {
-            lastY = 0;
-          } else if (text.attrs.y > cntHeight - dragBorder) {
-            lastY = cntHeight - dragBorder;
-          } else {
-            lastY = text.attrs.y;
-          }
+        //   if (markup.group.attrs.x < 0) {
+        //     lastX = 0;
+        //   } else if (markup.group.attrs.x > cntWidth - dragBorder) {
+        //     lastX = cntWidth - dragBorder;
+        //   } else {
+        //     lastX = markup.group.attrs.x;
+        //   }
+        //   if (markup.group.attrs.y < 0) {
+        //     lastY = 0;
+        //   } else if (markup.group.attrs.y > cntHeight - dragBorder) {
+        //     lastY = cntHeight - dragBorder;
+        //   } else {
+        //     lastY = markup.group.attrs.y;
+        //   }
+        // });
+        break;
+      case "line":
+        markup.group = new Konva.Line({
+          points: markup.record.realPoints,
+          stroke: markup.record.color,
+          strokeWidth: 5,
+          lineCap: "round",
+          lineJoin: "round",
         });
-        filesGroup.add(text);
-        markupLayers.push({ object: text, record, draggable: false });
+        break;
+
       default:
-        return;
+        break;
     }
+    filesGroup.add(markup.group);
+    return markup;
   });
 }
 let showStrokes = false;
