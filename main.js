@@ -67,6 +67,7 @@ function unsetAllDraggables() {
 }
 function toggleDraggable(fileId) {
   unsetAllDraggables();
+  if (drawingMarkups) return;
   const fileLayer = fileLayers.find((record) => record.id === fileId);
   fileLayer.draggable = !fileLayer.draggable;
   if (fileLayer.draggable) {
@@ -421,42 +422,6 @@ let box = new Konva.Rect({
   strokeWidth: 2,
 });
 filesGroup.add(box);
-
-// let drawing = false;
-// let line;
-// let lineDotsCount = 0;
-// filesGroup.on("click", function ({ evt }) {
-//   console.log("down: ", evt.x, evt.y);
-//   drawing = true;
-//   if (lineDotsCount === 0) {
-//     line = new Konva.Line({
-//       points: [evt.x, evt.y],
-//       stroke: "red",
-//       strokeWidth: 5,
-//       lineCap: "round",
-//       lineJoin: "round",
-//     });
-//     filesGroup.add(line);
-//     lineDotsCount += 1;
-//   } else {
-//     const points = line.points().slice(0, lineDotsCount * 2);
-//     points.push(evt.x);
-//     points.push(evt.y);
-//     line.points(points);
-//     lineDotsCount += 1;
-//   }
-// });
-// filesGroup.on("mousemove", function ({ evt }) {
-//   if (!drawing) return;
-//   const points = line.points().slice(0, lineDotsCount * 2);
-//   points.push(evt.x);
-//   points.push(evt.y);
-//   line.points(points);
-// });
-// filesGroup.on("mouseup", function ({ evt }) {
-//   console.log("up: ", evt.x, evt.y);
-//   drawing = false;
-// });
 
 // file group is user view. when files group is draged means the view ports is changed
 // we have to check for new view bounds to render new tiles and destroy old unshown tiles
