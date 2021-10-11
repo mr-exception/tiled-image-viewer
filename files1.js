@@ -96,3 +96,33 @@ const files = [
     tileSize: 200,
   },
 ];
+
+function getTilesDims(fileId, z) {
+  const zoomProps = [
+    { unitPerPixel: 256, order: 1 },
+    { unitPerPixel: 128, order: 2 },
+    { unitPerPixel: 64, order: 3 },
+    { unitPerPixel: 32, order: 4 },
+    { unitPerPixel: 16, order: 5 },
+    { unitPerPixel: 8, order: 6 },
+    { unitPerPixel: 4, order: 7 },
+    { unitPerPixel: 2, order: 8 },
+    { unitPerPixel: 1, order: 9 },
+  ];
+  const fileBounds = {
+    maxX: 76160,
+    maxY: 0,
+    minX: 0,
+    minY: -107776,
+  };
+  const zoomProp = zoomProps.find((value) => value.order === z);
+  const maxX = Math.abs(fileBounds.maxX - fileBounds.minX);
+  const maxY = Math.abs(fileBounds.maxY - fileBounds.minY);
+  const unitPerPixel = zoomProp.unitPerPixel;
+  const cols = Math.ceil(maxX / 256 / unitPerPixel);
+  const rows = Math.ceil(maxY / 256 / unitPerPixel);
+  return {
+    cols,
+    rows,
+  };
+}
