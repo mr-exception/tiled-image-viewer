@@ -5,6 +5,15 @@
   </head>
   <body>
     <div id="viewer"></div>
+    <div class="controls">
+      <div class="zoom">
+        <button onclick="zoomIn()">+</button>
+        <button onclick="zoomOut()">-</button>
+      </div>
+      <div class="toggleBorder">
+        <button onclick="toggleBorder()">toggle borders</button>
+      </div>
+    </div>
   </body>
   <script>
     // primary variables (these variables are configured in first step)
@@ -21,6 +30,8 @@
     let rowsForZoom = 0;
   </script>
   <script src="https://www.myersdaily.org/joseph/javascript/md5.js"></script>
+  <script src="files1.js"></script>
+  <!-- <script src="files2.js"></script> -->
   <script src="public_events.js"></script>
   <script src="main.js"></script>
 </html>
