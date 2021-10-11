@@ -52,3 +52,18 @@ body {
   color: white;
   border: 3px solid #999;
 }
+
+.draw {
+  flex: 1;
+  flex-direction: row;
+  display: flex;
+  max-height: 60px;
+}
+
+.draw > button {
+  flex: 1;
+  margin: 10px;
+  background-color: #1c8512;
+  color: white;
+  border: 3px solid #999;
+}
